@@ -20,7 +20,7 @@ static const char *res_names[] = {
 };
 #undef RES_STRING
 
-#define CONTEXT_SIZE 999999
+#define CONTEXT_SIZE 64
 
 #define DATA_SIZE 1024
 
@@ -30,8 +30,8 @@ static const char *res_names[] = {
 #define R2 2 // vm->data[R2] tmp2
 #define R3 3 // vm->data[R3] tmp3
 #define PC 4 // vm->data[PC] program counter
-#define SP 5 // vm->data[SP] stack pointer
-#define BP 6 // vm->data[BP] base pointer
+#define BP 5 // vm->data[BP] base pointer
+#define SP 6 // vm->data[SP] stack pointer
 #define SB 7 // vm->data[SB] stack base
 
 typedef struct {

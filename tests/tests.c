@@ -50,8 +50,8 @@ void test_program_factorial()
         assert(inst_eq(pi1, pi2));
     }
 
-    // Assert termination
-    assert(loopn(&vm) && "Vm took to many cycles");
+    // Run program
+    loop(&vm);
 
     // Assert first element is factorial
     assert(vm.data[0] == expected && "Factorial computation result is not correct");
@@ -107,8 +107,8 @@ void test_program_fibonacci()
         assert(inst_eq(pi1, pi2));
     }
 
-    // Assert termination
-    assert(loopn(&vm) && "Vm took to many cycles");
+    // Run program
+    loop(&vm);
 
     // Assert first element is fibonacci
     assert(vm.data[0] == expected && "Fibonacci computation result is not correct");
@@ -116,6 +116,6 @@ void test_program_fibonacci()
 
 int main()
 {
-    /*test_program_factorial();*/
+    test_program_factorial();
     test_program_fibonacci();
 }

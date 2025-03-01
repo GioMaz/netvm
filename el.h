@@ -8,9 +8,10 @@
 #include "vm.h"
 
 typedef enum {
-    CONN_REQ,
-    CONN_RES,
-    CONN_END,
+    CONN_REQ, // Should receive request
+    CONN_RES, // Should send response
+    CONN_END, // Should close connection
+    CONN_LOOP, // Should keep executing
 } ConnState;
 
 #define BUF_SIZE 512

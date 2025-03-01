@@ -156,15 +156,15 @@ void repl_exec(int fd)
     };
     write_all(fd, &req, sizeof(req.header));
 
-    Response res;
-    read_all(fd, &res, sizeof(res.header));
-    read_all(fd, res.payload, res.header.size);
+    /*Response res;*/
+    /*read_all(fd, &res, sizeof(res.header));*/
+    /*read_all(fd, res.payload, res.header.size);*/
 
-    if (res.header.status == SUCCESS) {
-        printf("%d\n", ((int *)res.payload)[0]);
-    } else {
-        fprintf(stderr, "Failed to execute remote program.\n");
-    }
+    /*if (res.header.status == SUCCESS) {*/
+    /*    printf("%d\n", ((int *)res.payload)[0]);*/
+    /*} else {*/
+    /*    fprintf(stderr, "Failed to execute remote program.\n");*/
+    /*}*/
 }
 
 void repl_delete(int fd, uint32_t start, uint32_t size)
@@ -190,7 +190,7 @@ void repl_delete(int fd, uint32_t start, uint32_t size)
     }
 }
 
-void repl_insp(int fd, uint32_t size)
+void repl_dump(int fd, uint32_t size)
 {
     Response res;
     Request req;
@@ -200,7 +200,7 @@ void repl_insp(int fd, uint32_t size)
 
     while (size > 0) {
         req.header = (RequestHeader) {
-            .type = INSP,
+            .type = DUMP,
             .size = 2 * sizeof(uint32_t),
         };
         ((uint32_t *)req.payload)[0] = offset;
@@ -219,7 +219,7 @@ void repl_insp(int fd, uint32_t size)
         size -= n;
 
         if (res.header.status == FAILURE) {
-            fprintf(stderr, "Failed to inspect data.\n");
+            fprintf(stderr, "Failed to get memory dump.\n");
             break;
         }
     }
@@ -267,7 +267,7 @@ void repl_help()
         "   - get: get the current state of the server\n"
         "   - exec: execute the current state of the server\n"
         "   - delete <start> <size>: delete <size> instructions starting from <start>\n"
-        "   - insp <size>: inspect the first <size> integers in the vm data\n"
+        "   - dump <size>: get memory dump of the first <size> integers in the vm data\n"
         "   - save <filename>: get the remote state and save it to <filename>\n"
         "   - load <filename>: load <filename> state and merge it to the remote state\n"
         "Example usage:\n"
@@ -321,10 +321,10 @@ int main()
             uint32_t start = 0, size = 0;
             sscanf(buffer, "%*s %d %d", &start, &size);
             repl_delete(fd, start, size);
-        } else if (strcmp(cmd, "insp") == 0) {
+        } else if (strcmp(cmd, "dump") == 0) {
             uint32_t size = 0;
             sscanf(buffer, "%*s %d", &size);
-            repl_insp(fd, size);
+            repl_dump(fd, size);
         } else if (strcmp(cmd, "save") == 0) {
             char filename[FILENAME_SIZE] = {0};
             sscanf(buffer, "%*s %s", filename);

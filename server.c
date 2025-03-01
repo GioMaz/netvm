@@ -19,6 +19,9 @@ bool handle_connection(Conn *conn)
         case CONN_RES:
             handle_response(conn);
             break;
+        case CONN_LOOP:
+            handle_loop(conn);
+            break;
         case CONN_END:
         default:
             return false;
@@ -63,7 +66,7 @@ bool handle_request(Conn *conn)
         conn->rbuf_size += (size_t)bytes;
 
         // Use this for pipelining, allow for multiple
-        // requests to be store inside rbuf simultaneously
+        // requests to be stored inside rbuf simultaneously
         while (conn->rbuf_size) {
             // Check if the header is ready to be read
             if (conn->rbuf_size < sizeof(RequestHeader)) {
@@ -86,25 +89,25 @@ bool handle_request(Conn *conn)
             Response res = {0};
             switch (req.header.type) {
                 case MERGE:
-                    handle_merge(conn, &req, &res);
+                    conn->state = handle_merge(conn, &req, &res);
                     break;
                 case INSERT:
-                    handle_insert(conn, &req, &res);
+                    conn->state = handle_insert(conn, &req, &res);
                     break;
                 case EXEC:
-                    handle_exec(conn, &req, &res);
+                    conn->state = handle_exec(conn, &res);
                     break;
                 case RESET:
-                    handle_reset(conn, &req, &res);
+                    conn->state = handle_reset(conn, &res);
                     break;
                 case GET:
-                    handle_get(conn, &req, &res);
+                    conn->state = handle_get(conn, &req, &res);
                     break;
                 case DELETE:
-                    handle_delete(conn, &req, &res);
+                    conn->state = handle_delete(conn, &req, &res);
                     break;
-                case INSP:
-                    handle_insp(conn, &req, &res);
+                case DUMP:
+                    conn->state = handle_dump(conn, &req, &res);
                     break;
                 default:
                     res.header.status = UNKNOWN_METHOD;
@@ -125,17 +128,16 @@ bool handle_request(Conn *conn)
             }
             conn->rbuf_size = remain;
 
-            conn->state = CONN_RES;
-
-            // If I remove this pipelining doesn't work
-            handle_response(conn);
+            if (conn->state == CONN_RES) {
+                handle_response(conn);
+            }
         }
     }
 
     return true;
 }
 
-bool handle_merge(Conn *conn, Request *req, Response *res)
+ConnState handle_merge(Conn *conn, Request *req, Response *res)
 {
     printf("MERGE...\n");
     size_t bytes = req->header.size;
@@ -147,15 +149,16 @@ bool handle_merge(Conn *conn, Request *req, Response *res)
         printf("Failed to merge program\n");
         res->header.status = FAILURE;
         res->header.size = 0;
-        return false;
+    } else {
+        res->header.status = SUCCESS;
+        res->header.size = 0;
+        conn->state = CONN_RES;
     }
 
-    res->header.status = SUCCESS;
-    res->header.size = 0;
-    return true;
+    return CONN_RES;
 }
 
-bool handle_insert(Conn *conn, Request *req, Response *res)
+ConnState handle_insert(Conn *conn, Request *req, Response *res)
 {
     printf("INSERT...\n");
     Instruction *insts = (Instruction *)req->payload;
@@ -169,33 +172,24 @@ bool handle_insert(Conn *conn, Request *req, Response *res)
         printf("Failed to insert to program\n");
         res->header.status = FAILURE;
         res->header.size = 0;
-        return false;
-    }
-
-    res->header.status = SUCCESS;
-    res->header.size = 0;
-    return true;
-}
-
-bool handle_exec(Conn *conn, Request *req, Response *res)
-{
-    printf("EXEC...\n");
-    Vm *vm = conn->vm;
-    vm_setreg(vm);
-    bool rv = loopn(vm);
-    if (rv) {
-        res->header.status = SUCCESS;
-        res->header.size = sizeof(vm->data[0]);
-        memcpy(res->payload, &vm->data[0], sizeof(vm->data[0]));
     } else {
-        printf("Failed to execute program\n");
-        res->header.status = FAILURE;
+        res->header.status = SUCCESS;
         res->header.size = 0;
     }
-    return true;
+
+    return CONN_RES;
 }
 
-bool handle_reset(Conn *conn, Request *req, Response *res)
+ConnState handle_exec(Conn *conn, Response *res)
+{
+    printf("EXEC...\n");
+    vm_setreg(conn->vm);
+    res->header.status = SUCCESS;
+    res->header.size = 0;
+    return CONN_LOOP;
+}
+
+ConnState handle_reset(Conn *conn, Response *res)
 {
     printf("RESET...\n");
     bool rv = program_clear(conn->vm->program);
@@ -203,16 +197,16 @@ bool handle_reset(Conn *conn, Request *req, Response *res)
         printf("Failed to reset program\n");
         res->header.status = FAILURE;
         res->header.size = 0;
-        return false;
+    } else {
+        vm_setreg(conn->vm);
+        res->header.status = SUCCESS;
+        res->header.size = 0;
     }
-    vm_setreg(conn->vm);
 
-    res->header.status = SUCCESS;
-    res->header.size = 0;
-    return true;
+    return CONN_RES;
 }
 
-bool handle_get(Conn *conn, Request *req, Response *res)
+ConnState handle_get(Conn *conn, Request *req, Response *res)
 {
     printf("GET...\n");
     size_t start = ((uint32_t *)req->payload)[0];
@@ -224,37 +218,38 @@ bool handle_get(Conn *conn, Request *req, Response *res)
     if (n) {
         res->header.status = SUCCESS;
         res->header.size = n * sizeof(Instruction);
-        return true;
+    } else {
+        res->header.status = FAILURE;
+        res->header.size = 0;
     }
 
-    res->header.status = FAILURE;
-    res->header.size = 0;
-    return false;
+    return CONN_RES;
 }
 
-bool handle_delete(Conn *conn, Request *req, Response *res)
+ConnState handle_delete(Conn *conn, Request *req, Response *res)
 {
     printf("DELETE...\n");
     size_t start = ((uint32_t *)req->payload)[0];
     size_t size = ((uint32_t *)req->payload)[1];
     Program *program = conn->vm->program;
     uint32_t n = program_delete(program, start, size);
+
     if (n) {
         res->header.status = SUCCESS;
         res->header.size = sizeof(n);
         ((uint32_t *)res->payload)[0] = n;
-        return true;
+    } else {
+        printf("Failed to delete program\n");
+        res->header.status = FAILURE;
+        res->header.size = 0;
     }
 
-    printf("Failed to delete program\n");
-    res->header.status = FAILURE;
-    res->header.size = 0;
-    return false;
+    return CONN_RES;
 }
 
-bool handle_insp(Conn *conn, Request *req, Response *res)
+ConnState handle_dump(Conn *conn, Request *req, Response *res)
 {
-    printf("INSP...\n");
+    printf("DUMP...\n");
     size_t start = ((uint32_t *)req->payload)[0];
     size_t size = ((uint32_t *)req->payload)[1];
     int *data = conn->vm->data;
@@ -264,13 +259,13 @@ bool handle_insp(Conn *conn, Request *req, Response *res)
         res->header.status = SUCCESS;
         res->header.size = size * sizeof(data[0]);
         memcpy(res->payload, &data[start], res->header.size);
-        return true;
+    } else {
+        printf("Failed to get memory dump\n");
+        res->header.status = FAILURE;
+        res->header.size = 0;
     }
 
-    printf("Failed to inspect data\n");
-    res->header.status = FAILURE;
-    res->header.size = 0;
-    return false;
+    return CONN_RES;
 }
 
 bool handle_response(Conn *conn)
@@ -300,6 +295,14 @@ bool handle_response(Conn *conn)
         }
     }
 
+    return true;
+}
+
+bool handle_loop(Conn *conn)
+{
+    if (loopn(conn->vm)) {
+        conn->state = CONN_REQ;
+    }
     return true;
 }
 

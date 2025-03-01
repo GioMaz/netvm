@@ -28,8 +28,8 @@ void vm_setreg(Vm *vm)
     vm->data[R2] = 0;
     vm->data[R3] = 0;
     vm->data[PC] = 0;
-    vm->data[SP] = SB;
     vm->data[BP] = SB;
+    vm->data[SP] = SB;
 }
 
 // Memory
@@ -48,7 +48,6 @@ void loop(Vm *vm)
     while (vm->data[PC] < program_size(vm->program)) {
         // Fetch instruction
         inst = fetch(vm);
-        inst_print(*inst, 0);
 
         // Increment program counter
         vm->data[PC]++;
@@ -93,7 +92,6 @@ bool loopn(Vm *vm)
 
         // Check if execution exceeded context size
         if (count >= CONTEXT_SIZE) {
-            printf("An infinite loop was detected\n");
             return false;
         }
     }
