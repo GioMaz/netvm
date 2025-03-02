@@ -11,7 +11,7 @@ void vm_init(Vm *vm)
     program_init(program);
     vm->program = program;
 
-    // Setup registers
+    // Clear registers
     vm_setreg(vm);
 }
 

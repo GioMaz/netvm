@@ -3,9 +3,12 @@
 
 #include "el.h"
 
-// PAYLOAD_SIZE should be a value greater than sizeof(Instruction)
-// defined in program.h which, as of now, is 16 bytes
 #define PAYLOAD_SIZE (2 * sizeof(Instruction))
+
+_Static_assert(
+    PAYLOAD_SIZE > sizeof(Instruction),
+    "PAYLOAD_SIZE should be greater than sizeof(Instruction)"
+);
 
 typedef enum {
     MERGE,
@@ -21,6 +24,11 @@ typedef struct {
     int32_t type; // enum Method
     uint32_t size;
 } RequestHeader;
+
+_Static_assert(
+    sizeof(((RequestHeader) {}).type) == sizeof(Method),
+    "RequestHeader.type sould have the same size as Method"
+);
 
 typedef struct {
     RequestHeader header;

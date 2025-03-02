@@ -23,9 +23,7 @@ bool handle_connection(Conn *conn)
             handle_loop(conn);
             break;
         case CONN_END:
-        default:
             return false;
-            break;
     }
 
     return true;
@@ -306,7 +304,6 @@ bool handle_loop(Conn *conn)
     if (loopn(conn->vm)) {
         conn->state = CONN_REQ;
     }
-    printf("DONE ONE\n");
     return true;
 }
 
