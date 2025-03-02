@@ -233,7 +233,7 @@ void repl_save(int fd, char *filename)
     bool rv = program_save(filename, &program);
     if (!rv) {
         program_deinit(&program);
-        fprintf(stderr, "Failed to save program to %s\n", filename);
+        fprintf(stderr, "Failed to save program to %s.\n", filename);
         return;
     }
 
@@ -248,13 +248,13 @@ void repl_load(int fd, char *filename)
     bool rv = program_load(filename, &program);
     if (!rv) {
         program_deinit(&program);
-        fprintf(stderr, "Failed to load program from %s\n", filename);
+        fprintf(stderr, "Failed to load program from %s.\n", filename);
         return;
     }
 
     merge_to_remote(fd, &program);
     program_deinit(&program);
-    printf("Loaded from %s\n", filename);
+    printf("Loaded from %s.\n", filename);
 }
 
 void repl_help()

@@ -6,7 +6,7 @@
 
 typedef enum {
     OK,
-    DATA_OVERFLOW,
+    MEMORY_OVERFLOW,
     MALFORMED_INSTRUCTION,
     DIVISION_BY_ZERO
 } InstResult;
@@ -14,7 +14,7 @@ typedef enum {
 #define RES_STRING(res) #res
 static const char *res_names[] = {
     RES_STRING(OK),
-    RES_STRING(DATA_OVERFLOW),
+    RES_STRING(MEMORY_OVERFLOW),
     RES_STRING(MALFORMED_INSTRUCTION),
     RES_STRING(DIVISION_BY_ZERO)
 };
@@ -22,21 +22,21 @@ static const char *res_names[] = {
 
 #define CONTEXT_SIZE 64
 
-#define DATA_SIZE 1024
+#define MEMORY_SIZE 1024
 
 // ABI
-#define R0 0 // vm->data[R0] tmp0 (return value)
-#define R1 1 // vm->data[R1] tmp1
-#define R2 2 // vm->data[R2] tmp2
-#define R3 3 // vm->data[R3] tmp3
-#define PC 4 // vm->data[PC] program counter
-#define BP 5 // vm->data[BP] base pointer
-#define SP 6 // vm->data[SP] stack pointer
-#define SB 7 // vm->data[SB] stack base
+#define R0 0 // vm->memory[R0] tmp0 (return value)
+#define R1 1 // vm->memory[R1] tmp1
+#define R2 2 // vm->memory[R2] tmp2
+#define R3 3 // vm->memory[R3] tmp3
+#define PC 4 // vm->memory[PC] program counter
+#define BP 5 // vm->memory[BP] base pointer
+#define SP 6 // vm->memory[SP] stack pointer
+#define SB 7 // vm->memory[SB] stack base
 
 typedef struct {
     Program *program;
-    int data[DATA_SIZE];
+    int memory[MEMORY_SIZE];
 } Vm;
 
 // Interpreter

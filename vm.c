@@ -23,21 +23,21 @@ void vm_deinit(Vm *vm)
 
 void vm_setreg(Vm *vm)
 {
-    vm->data[R0] = 0;
-    vm->data[R1] = 0;
-    vm->data[R2] = 0;
-    vm->data[R3] = 0;
-    vm->data[PC] = 0;
-    vm->data[BP] = SB;
-    vm->data[SP] = SB;
+    vm->memory[R0] = 0;
+    vm->memory[R1] = 0;
+    vm->memory[R2] = 0;
+    vm->memory[R3] = 0;
+    vm->memory[PC] = 0;
+    vm->memory[BP] = SB;
+    vm->memory[SP] = SB;
 }
 
 // Memory
-void memory_dump(Vm *vm)
+void MEMORY_dump(Vm *vm)
 {
     int limit = 16;
-    for (int i = 0; i < limit && i < DATA_SIZE; i++) {
-        printf("[%i]:\t%i\n", i, vm->data[i]);
+    for (int i = 0; i < limit && i < MEMORY_SIZE; i++) {
+        printf("[%i]:\t%i\n", i, vm->memory[i]);
     }
 }
 
@@ -45,19 +45,19 @@ void memory_dump(Vm *vm)
 void loop(Vm *vm)
 {
     Instruction *inst;
-    while (vm->data[PC] < program_size(vm->program)) {
+    while (vm->memory[PC] < program_size(vm->program)) {
         // Fetch instruction
         inst = fetch(vm);
 
         // Increment program counter
-        vm->data[PC]++;
+        vm->memory[PC]++;
 
         // Execute instruction
         InstResult res = execute(vm, inst);
 
         // Handle result
         if (res != OK) {
-            printf("Error: %s at instruction %d\n", res_names[res], vm->data[PC]);
+            printf("Error: %s at instruction %d\n", res_names[res], vm->memory[PC]);
             break;
         }
     }
@@ -73,7 +73,7 @@ bool loopn(Vm *vm)
         inst = fetch(vm);
 
         // Increment program counter
-        vm->data[PC]++;
+        vm->memory[PC]++;
         count++;
 
         // Execute instruction
@@ -81,12 +81,12 @@ bool loopn(Vm *vm)
 
         // Handle result
         if (res != OK) {
-            printf("Error: %s at instruction %d\n", res_names[res], vm->data[PC]);
+            printf("Error: %s at instruction %d\n", res_names[res], vm->memory[PC]);
             break;
         }
 
         // Check if program finished
-        if (vm->data[PC] >= program_size(vm->program)) {
+        if (vm->memory[PC] >= program_size(vm->program)) {
             return true;
         }
 
@@ -105,39 +105,39 @@ bool loop_dbg(Vm *vm)
     Instruction *inst = fetch(vm);
 
     // Increment program counter
-    vm->data[PC]++;
+    vm->memory[PC]++;
 
     // Execute instruction
     InstResult res = execute(vm, inst);
 
     // Handle result
     if (res != OK) {
-        printf("Error: %s at instruction %d\n", res_names[res], vm->data[PC]);
+        printf("Error: %s at instruction %d\n", res_names[res], vm->memory[PC]);
     }
 
     // Check if program finished
-    if (vm->data[PC] >= program_size(vm->program)) {
+    if (vm->memory[PC] >= program_size(vm->program)) {
         return true;
     }
 
     printf("Program dump:\n");
     Instruction *items = vm->program->items;
     for (size_t i = 0; i < vm->program->size; i++) {
-        if (vm->data[PC] == i)
+        if (vm->memory[PC] == i)
             inst_print_curr(items[i], i);
         else
             inst_print(items[i], i);
     }
 
     printf("Memory dump:\n");
-    memory_dump(vm);
+    MEMORY_dump(vm);
 
     return true;
 }
 
 Instruction *fetch(Vm *vm)
 {
-    return program_fetch(vm->program, vm->data[PC]);
+    return program_fetch(vm->program, vm->memory[PC]);
 }
 
 // Pointer to interpreter cause we need
@@ -182,91 +182,91 @@ InstResult execute(Vm *vm, Instruction *inst)
     return res;
 }
 
-#define CHECK_DATA_BOUNDS(arg) \
-        arg >= 0 && arg < DATA_SIZE
+#define CHECK_MEMORY_BOUNDS(arg) \
+        arg >= 0 && arg < MEMORY_SIZE
 
-#define CHECK_DATA_BOUNDS_2(arg1, arg2) \
-        arg1 >= 0 && arg1 < DATA_SIZE \
-     && arg2 >= 0 && arg2 < DATA_SIZE
+#define CHECK_MEMORY_BOUNDS_2(arg1, arg2) \
+        arg1 >= 0 && arg1 < MEMORY_SIZE \
+     && arg2 >= 0 && arg2 < MEMORY_SIZE
 
-#define CHECK_DATA_BOUNDS_3(arg1, arg2, arg3) \
-        arg1 >= 0 && arg1 < DATA_SIZE \
-     && arg2 >= 0 && arg2 < DATA_SIZE \
-     && arg3 >= 0 && arg3 < DATA_SIZE
+#define CHECK_MEMORY_BOUNDS_3(arg1, arg2, arg3) \
+        arg1 >= 0 && arg1 < MEMORY_SIZE \
+     && arg2 >= 0 && arg2 < MEMORY_SIZE \
+     && arg3 >= 0 && arg3 < MEMORY_SIZE
 
 // Instructions
 InstResult add(Vm *vm, int dest, int arg1, int arg2)
 {
-    if (CHECK_DATA_BOUNDS_3(dest, arg1, arg2)) {
-        vm->data[dest] = vm->data[arg1] + vm->data[arg2];
+    if (CHECK_MEMORY_BOUNDS_3(dest, arg1, arg2)) {
+        vm->memory[dest] = vm->memory[arg1] + vm->memory[arg2];
         return OK;
     }
 
-    return DATA_OVERFLOW;
+    return MEMORY_OVERFLOW;
 }
 
 InstResult addi(Vm *vm, int dest, int arg1, int arg2)
 {
-    if (CHECK_DATA_BOUNDS_2(dest, arg1)) {
-        vm->data[dest] = vm->data[arg1] + arg2;
+    if (CHECK_MEMORY_BOUNDS_2(dest, arg1)) {
+        vm->memory[dest] = vm->memory[arg1] + arg2;
         return OK;
     }
 
-    return DATA_OVERFLOW;
+    return MEMORY_OVERFLOW;
 }
 
 InstResult sub(Vm *vm, int dest, int arg1, int arg2)
 {
-    if (CHECK_DATA_BOUNDS_3(dest, arg1, arg2)) {
-        vm->data[dest] = vm->data[arg1] - vm->data[arg2];
+    if (CHECK_MEMORY_BOUNDS_3(dest, arg1, arg2)) {
+        vm->memory[dest] = vm->memory[arg1] - vm->memory[arg2];
         return OK;
     }
 
-    return DATA_OVERFLOW;
+    return MEMORY_OVERFLOW;
 }
 
 InstResult subi(Vm *vm, int dest, int arg1, int arg2)
 {
-    if (CHECK_DATA_BOUNDS_2(dest, arg1)) {
-        vm->data[dest] = vm->data[arg1] - arg2;
+    if (CHECK_MEMORY_BOUNDS_2(dest, arg1)) {
+        vm->memory[dest] = vm->memory[arg1] - arg2;
         return OK;
     }
 
-    return DATA_OVERFLOW;
+    return MEMORY_OVERFLOW;
 }
 
 InstResult mul(Vm *vm, int dest, int arg1, int arg2)
 {
-    if (CHECK_DATA_BOUNDS_3(dest, arg1, arg2)) {
-        vm->data[dest] = vm->data[arg1] * vm->data[arg2];
+    if (CHECK_MEMORY_BOUNDS_3(dest, arg1, arg2)) {
+        vm->memory[dest] = vm->memory[arg1] * vm->memory[arg2];
         return OK;
     }
 
-    return DATA_OVERFLOW;
+    return MEMORY_OVERFLOW;
 }
 
 InstResult muli(Vm *vm, int dest, int arg1, int arg2)
 {
-    if (CHECK_DATA_BOUNDS_2(dest, arg1)) {
-        vm->data[dest] = vm->data[arg1] * arg2;
+    if (CHECK_MEMORY_BOUNDS_2(dest, arg1)) {
+        vm->memory[dest] = vm->memory[arg1] * arg2;
         return OK;
     }
 
-    return DATA_OVERFLOW;
+    return MEMORY_OVERFLOW;
 }
 
 InstResult ddiv(Vm *vm, int dest, int arg1, int arg2)
 {
-    if (CHECK_DATA_BOUNDS_3(dest, arg1, arg2)) {
-        int den = vm->data[arg2];
+    if (CHECK_MEMORY_BOUNDS_3(dest, arg1, arg2)) {
+        int den = vm->memory[arg2];
         if (den == 0)
             return DIVISION_BY_ZERO;
 
-        vm->data[dest] = vm->data[arg1] / den;
+        vm->memory[dest] = vm->memory[arg1] / den;
         return OK;
     }
 
-    return DATA_OVERFLOW;
+    return MEMORY_OVERFLOW;
 }
 
 InstResult divi(Vm *vm, int dest, int arg1, int arg2)
@@ -274,160 +274,160 @@ InstResult divi(Vm *vm, int dest, int arg1, int arg2)
     if (arg2 == 0)
         return DIVISION_BY_ZERO;
 
-    if (CHECK_DATA_BOUNDS_2(dest, arg1)) {
-        vm->data[dest] = vm->data[arg1] / arg2;
+    if (CHECK_MEMORY_BOUNDS_2(dest, arg1)) {
+        vm->memory[dest] = vm->memory[arg1] / arg2;
         return OK;
     }
 
-    return DATA_OVERFLOW;
+    return MEMORY_OVERFLOW;
 }
 
 InstResult movi(Vm *vm, int dest, int arg1)
 {
-    if (CHECK_DATA_BOUNDS(dest)) {
-        vm->data[dest] = arg1;
+    if (CHECK_MEMORY_BOUNDS(dest)) {
+        vm->memory[dest] = arg1;
         return OK;
     }
 
-    return DATA_OVERFLOW;
+    return MEMORY_OVERFLOW;
 }
 
 InstResult push(Vm *vm, int dest)
 {
-    if (CHECK_DATA_BOUNDS_2(vm->data[SP], dest)) {
-        vm->data[vm->data[SP]] = vm->data[dest];
-        vm->data[SP]++;
+    if (CHECK_MEMORY_BOUNDS_2(vm->memory[SP], dest)) {
+        vm->memory[vm->memory[SP]] = vm->memory[dest];
+        vm->memory[SP]++;
         return OK;
     }
 
-    return DATA_OVERFLOW;
+    return MEMORY_OVERFLOW;
 }
 
 InstResult pushi(Vm *vm, int dest)
 {
-    if (CHECK_DATA_BOUNDS(vm->data[SP])) {
-        vm->data[vm->data[SP]] = dest;
-        vm->data[SP]++;
+    if (CHECK_MEMORY_BOUNDS(vm->memory[SP])) {
+        vm->memory[vm->memory[SP]] = dest;
+        vm->memory[SP]++;
         return OK;
     }
 
-    return DATA_OVERFLOW;
+    return MEMORY_OVERFLOW;
 }
 
 InstResult pop(Vm *vm, int dest)
 {
-    if (CHECK_DATA_BOUNDS(dest)
-        && vm->data[SP] > 0) {
-        vm->data[SP]--;
-        vm->data[dest] = vm->data[vm->data[SP]];
+    if (CHECK_MEMORY_BOUNDS(dest)
+        && vm->memory[SP] > 0) {
+        vm->memory[SP]--;
+        vm->memory[dest] = vm->memory[vm->memory[SP]];
         return OK;
     }
 
-    return DATA_OVERFLOW;
+    return MEMORY_OVERFLOW;
 }
 
 InstResult beq(Vm *vm, int dest, int arg1, int arg2)
 {
-    if (CHECK_DATA_BOUNDS_2(arg1, arg2)
+    if (CHECK_MEMORY_BOUNDS_2(arg1, arg2)
         && dest < program_size(vm->program)) {
         if (arg1 == arg2)
-            vm->data[PC] = dest;
-        else if (vm->data[arg1] == vm->data[arg2])
-            vm->data[PC] = dest;
+            vm->memory[PC] = dest;
+        else if (vm->memory[arg1] == vm->memory[arg2])
+            vm->memory[PC] = dest;
 
         return OK;
     }
 
-    return DATA_OVERFLOW;
+    return MEMORY_OVERFLOW;
 }
 
 InstResult beqi(Vm *vm, int dest, int arg1, int arg2)
 {
-    if (CHECK_DATA_BOUNDS(arg1)
+    if (CHECK_MEMORY_BOUNDS(arg1)
         && dest < program_size(vm->program)) {
-        if (vm->data[arg1] == arg2)
-            vm->data[PC] = dest;
+        if (vm->memory[arg1] == arg2)
+            vm->memory[PC] = dest;
 
         return OK;
     }
 
-    return DATA_OVERFLOW;
+    return MEMORY_OVERFLOW;
 }
 
 InstResult bne(Vm *vm, int dest, int arg1, int arg2)
 {
-    if (CHECK_DATA_BOUNDS_2(arg1, arg2)
+    if (CHECK_MEMORY_BOUNDS_2(arg1, arg2)
         && dest < program_size(vm->program)) {
-        if (vm->data[arg1] != vm->data[arg2])
-            vm->data[PC] = dest;
+        if (vm->memory[arg1] != vm->memory[arg2])
+            vm->memory[PC] = dest;
 
         return OK;
     }
 
-    return DATA_OVERFLOW;
+    return MEMORY_OVERFLOW;
 }
 
 InstResult bnei(Vm *vm, int dest, int arg1, int arg2)
 {
-    if (CHECK_DATA_BOUNDS(arg1)
+    if (CHECK_MEMORY_BOUNDS(arg1)
         && dest < program_size(vm->program)) {
-        if (vm->data[arg1] != arg2)
-            vm->data[PC] = dest;
+        if (vm->memory[arg1] != arg2)
+            vm->memory[PC] = dest;
 
         return OK;
     }
 
-    return DATA_OVERFLOW;
+    return MEMORY_OVERFLOW;
 }
 
 InstResult bge(Vm *vm, int dest, int arg1, int arg2)
 {
-    if (CHECK_DATA_BOUNDS_2(arg1, arg2)
+    if (CHECK_MEMORY_BOUNDS_2(arg1, arg2)
         && dest < program_size(vm->program)) {
-        if (vm->data[arg1] >= vm->data[arg2])
-            vm->data[PC] = dest;
+        if (vm->memory[arg1] >= vm->memory[arg2])
+            vm->memory[PC] = dest;
 
         return OK;
     }
 
-    return DATA_OVERFLOW;
+    return MEMORY_OVERFLOW;
 }
 
 InstResult bgei(Vm *vm, int dest, int arg1, int arg2)
 {
-    if (CHECK_DATA_BOUNDS(arg1)
+    if (CHECK_MEMORY_BOUNDS(arg1)
         && dest < program_size(vm->program)) {
-        if (vm->data[arg1] >= arg2)
-            vm->data[PC] = dest;
+        if (vm->memory[arg1] >= arg2)
+            vm->memory[PC] = dest;
 
         return OK;
     }
 
-    return DATA_OVERFLOW;
+    return MEMORY_OVERFLOW;
 }
 
 InstResult ret(Vm *vm, int dest)
 {
-    if (CHECK_DATA_BOUNDS(dest)) {
-        vm->data[0] = vm->data[dest];
+    if (CHECK_MEMORY_BOUNDS(dest)) {
+        vm->memory[0] = vm->memory[dest];
         return OK;
     }
 
-    return DATA_OVERFLOW;
+    return MEMORY_OVERFLOW;
 }
 
 InstResult reti(Vm *vm, int dest)
 {
-    vm->data[0] = dest;
+    vm->memory[0] = dest;
     return OK;
 }
 
 InstResult halt(Vm *vm)
 {
-    vm->data[PC] = program_size(vm->program);
+    vm->memory[PC] = program_size(vm->program);
     return OK;
 }
 
-#undef CHECK_DATA_BOUNDS
-#undef CHECK_DATA_BOUNDS_2
-#undef CHECK_DATA_BOUNDS_3
+#undef CHECK_MEMORY_BOUNDS
+#undef CHECK_MEMORY_BOUNDS_2
+#undef CHECK_MEMORY_BOUNDS_3

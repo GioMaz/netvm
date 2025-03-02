@@ -252,13 +252,13 @@ ConnState handle_dump(Conn *conn, Request *req, Response *res)
     printf("DUMP...\n");
     size_t start = ((uint32_t *)req->payload)[0];
     size_t size = ((uint32_t *)req->payload)[1];
-    int *data = conn->vm->data;
-    size = MIN(size, PAYLOAD_SIZE / sizeof(data[0]));
+    int *memory = conn->vm->memory;
+    size = MIN(size, PAYLOAD_SIZE / sizeof(memory[0]));
 
-    if (start + size < DATA_SIZE) {
+    if (start + size < MEMORY_SIZE) {
         res->header.status = SUCCESS;
-        res->header.size = size * sizeof(data[0]);
-        memcpy(res->payload, &data[start], res->header.size);
+        res->header.size = size * sizeof(memory[0]);
+        memcpy(res->payload, &memory[start], res->header.size);
     } else {
         printf("Failed to get memory dump\n");
         res->header.status = FAILURE;
