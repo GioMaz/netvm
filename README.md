@@ -1,6 +1,6 @@
-# psychic-disco
+# netvm
 
-Psychic-disco is a very simple virtual machine that can execute basic instructions sent over a TCP connection.
+Netvm is a very simple virtual machine that can execute basic instructions sent over a TCP connection.
 
 ### Building
 
@@ -16,8 +16,8 @@ Run server:
 ./server
 ```
 
-Run client:
+Run repl:
 
 ```bash
-./client
+./repl
 ```
