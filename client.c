@@ -114,6 +114,7 @@ int main()
         .size = 0
     };
     write_all(fd, &req, sizeof(req.header));
+    printf("CIAOS\n");
 
     // Response
     read_all(fd, &res, sizeof(res.header));

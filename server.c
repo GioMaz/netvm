@@ -128,7 +128,7 @@ bool handle_request(Conn *conn)
             }
             conn->rbuf_size = remain;
 
-            if (conn->state == CONN_RES) {
+            if (conn->state == CONN_RES || conn->state == CONN_LOOP) {
                 handle_response(conn);
             }
         }
@@ -270,7 +270,7 @@ ConnState handle_dump(Conn *conn, Request *req, Response *res)
 
 bool handle_response(Conn *conn)
 {
-    while (conn->state == CONN_RES) {
+    while (conn->wbuf_sent < conn->wbuf_size) {
         size_t bytes = 0;
         do {
             size_t n = conn->wbuf_size - conn->wbuf_sent;
@@ -287,12 +287,15 @@ bool handle_response(Conn *conn)
         }
 
         conn->wbuf_sent += (size_t)bytes;
+
         assert(conn->wbuf_sent <= conn->wbuf_size);
-        if (conn->wbuf_sent == conn->wbuf_size) {
-            conn->state = CONN_REQ;
-            conn->wbuf_size = 0;
-            conn->wbuf_sent = 0;
-        }
+    }
+
+    conn->wbuf_size = 0;
+    conn->wbuf_sent = 0;
+
+    if (conn->state == CONN_RES) {
+        conn->state = CONN_REQ;
     }
 
     return true;
@@ -303,6 +306,7 @@ bool handle_loop(Conn *conn)
     if (loopn(conn->vm)) {
         conn->state = CONN_REQ;
     }
+    printf("DONE ONE\n");
     return true;
 }
 

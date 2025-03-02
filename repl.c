@@ -156,15 +156,15 @@ void repl_exec(int fd)
     };
     write_all(fd, &req, sizeof(req.header));
 
-    /*Response res;*/
-    /*read_all(fd, &res, sizeof(res.header));*/
-    /*read_all(fd, res.payload, res.header.size);*/
+    Response res;
+    read_all(fd, &res, sizeof(res.header));
+    read_all(fd, res.payload, res.header.size);
 
-    /*if (res.header.status == SUCCESS) {*/
-    /*    printf("%d\n", ((int *)res.payload)[0]);*/
-    /*} else {*/
-    /*    fprintf(stderr, "Failed to execute remote program.\n");*/
-    /*}*/
+    if (res.header.status == SUCCESS) {
+        printf("Execution started.\n");
+    } else {
+        fprintf(stderr, "Failed to execute remote program.\n");
+    }
 }
 
 void repl_delete(int fd, uint32_t start, uint32_t size)
