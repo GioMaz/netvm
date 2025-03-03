@@ -54,7 +54,7 @@ void test_program_factorial()
     loop(&vm);
 
     // Assert first element is factorial
-    assert(vm.data[0] == expected && "Factorial computation result is not correct");
+    assert(vm.memory[0] == expected && "Factorial computation result is not correct");
 }
 
 void test_program_fibonacci()
@@ -111,7 +111,7 @@ void test_program_fibonacci()
     loop(&vm);
 
     // Assert first element is fibonacci
-    assert(vm.data[0] == expected && "Fibonacci computation result is not correct");
+    assert(vm.memory[0] == expected && "Fibonacci computation result is not correct");
 }
 
 int main()
