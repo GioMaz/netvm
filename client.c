@@ -1,66 +1,24 @@
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
+#include <stdio.h>
 
 #include "program.h"
 #include "server.h"
 #include "utils.h"
 
-int main()
+void client_merge_all(int fd, Program *program)
 {
-    int fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (fd < 0) {
-        die("Failed to create connection socket\n");
-    }
-
-    struct sockaddr_in addr = {0};
-    addr.sin_family = AF_INET;
-    addr.sin_port = ntohs(8080);
-    addr.sin_addr.s_addr = ntohl(INADDR_LOOPBACK);
-    // addr.sin_addr.s_addr = inet_addr("192.168.1.202");
-    int rv = connect(fd, (struct sockaddr *)&addr, sizeof(addr));
-    if (rv < 0) {
-        die("Failed to connect to server socket\n");
-    }
-
-    // Create program (factorial of 5)
-    Program program;
-    program_init(&program);
-
-    Instruction i1 = { MOVI,    0, 5 };
-    Instruction i2 = { MOV,     1, 0 };
-    Instruction i3 = { ADDI,    1, 1, -1};
-    Instruction i4 = { BEQI,    6, 1, 1};
-    Instruction i5 = { MUL,     0, 0, 1};
-    Instruction i6 = { B,       2 };
-    Instruction i7 = { HALT };
-    Instruction iX = { B,    0 };
-
-    program_add(&program, i1);
-    program_add(&program, iX);
-    program_add(&program, iX);
-    program_add(&program, i2);
-    program_add(&program, i3);
-    program_add(&program, i4);
-    program_add(&program, i5);
-    program_add(&program, i6);
-    program_add(&program, i7);
-
     Request req;
     Response res;
 
-    // MERGE message
     size_t count = 0;
 
-    while (program_size(&program)) {
-        size_t n = MIN(program_size(&program),
-                PAYLOAD_SIZE/sizeof(Instruction)); // MIN(9, 16);
-
+    while (program_size(program)) {
+        size_t n = MIN(
+            program_size(program),
+            PAYLOAD_SIZE/sizeof(Instruction)
+        ); // MIN(9, 16);
         size_t size = n * sizeof(Instruction);
 
-        program_split(&program, (Instruction *)req.payload, n);
+        program_split(program, (Instruction *)req.payload, n);
         req.header = (RequestHeader) {
             .type = MERGE,
             .size = size
@@ -70,68 +28,145 @@ int main()
         count++;
     }
 
-    program_deinit(&program);
-
-    // Responses
     for (size_t i = 0; i < count; i++) {
         read_all(fd, &res.header, sizeof(res.header));
         read_all(fd, res.payload, res.header.size);
     }
+}
 
-    // DELETE message
-    req.header = (RequestHeader) {
-        .type = DELETE,
-        .size = 2 * 4
-    };
-    ((uint32_t *)req.payload)[0] = 1;
-    ((uint32_t *)req.payload)[1] = 2;
-    write_all(fd, &req, sizeof(req.header) + req.header.size);
+void client_insert(int fd, Program *program, uint64_t start)
+{
+    Request req;
+    Response res;
 
-    // Response
-    read_all(fd, &res.header, sizeof(res.header));
-    read_all(fd, res.payload, res.header.size);
+    size_t count = 0;
 
-    // GET message
-    req.header = (RequestHeader) {
-        .type = GET,
-        .size = 2 * 4
-    };
-    ((uint32_t *)req.payload)[0] = 0;
-    ((uint32_t *)req.payload)[1] = 4;
-    write_all(fd, &req, sizeof(req.header) + req.header.size);
+    while (program_size(program)) {
+        size_t n = MIN(
+            program_size(program),
+            ((PAYLOAD_SIZE - 2 * sizeof(uint64_t))/sizeof(Instruction))
+        );
+        size_t bytes = n * sizeof(Instruction);
 
-    // Response
-    Program tmp;
-    program_init(&tmp);
-    read_all(fd, &res, sizeof(res.header));
-    read_all(fd, res.payload, res.header.size);
-    program_merge(&tmp, (Instruction *)res.payload, res.header.size / sizeof(Instruction));
-    program_deinit(&tmp);
+        ((uint64_t *)req.payload)[0] = start;
+        ((uint64_t *)req.payload)[1] = n;
+        program_split(program, &((Instruction *)req.payload)[1], n);
+        req.header = (RequestHeader) {
+            .type = INSERT,
+            .size = 2 * sizeof(uint64_t) + bytes,
+        };
+        size_t req_size = sizeof(req.header) + req.header.size;
+        write_all(fd, &req, req_size);
+        start += n;
+        count++;
+    }
 
-    // EXEC message
+    for (size_t i = 0; i < count; i++) {
+        read_all(fd, &res.header, sizeof(res.header));
+        read_all(fd, res.payload, res.header.size);
+    }
+}
+
+void client_get_all(int fd, Program *program)
+{
+    uint32_t offset = 0;
+    const uint32_t chunk = PAYLOAD_SIZE / sizeof(Instruction);
+
+    Request req;
+    Response res;
+
+    do {
+        req.header = (RequestHeader) {
+            .type = GET,
+            .size = 2 * sizeof(uint32_t),
+        };
+        ((uint32_t *)req.payload)[0] = offset;
+        ((uint32_t *)req.payload)[1] = chunk;
+        write_all(fd, &req, sizeof(req.header) + req.header.size);
+
+        read_all(fd, &res, sizeof(res.header));
+        read_all(fd, res.payload, res.header.size);
+        program_merge(program, (Instruction *)res.payload,
+                res.header.size / sizeof(Instruction));
+
+        offset += chunk;
+    } while (res.header.size > 0);
+}
+
+void client_exec(int fd)
+{
+    Request req;
     req.header = (RequestHeader) {
         .type = EXEC,
-        .size = 0
+        .size = 0,
     };
     write_all(fd, &req, sizeof(req.header));
 
-    // Response
+    Response res;
     read_all(fd, &res, sizeof(res.header));
     read_all(fd, res.payload, res.header.size);
-    printf("res: %d\n", res.payload[0]);
 
-    // RESET message
+    if (res.header.status == SUCCESS) {
+        printf("Execution started.\n");
+    } else {
+        fprintf(stderr, "Failed to execute remote program.\n");
+    }
+}
+
+void client_delete(int fd, uint32_t start, uint32_t size)
+{
+    Request req;
     req.header = (RequestHeader) {
-        .type = RESET,
-        .size = 0
+        .type = DELETE,
+        .size = 2 * sizeof(uint32_t),
     };
-    write_all(fd, &req, sizeof(req.header));
+    ((uint32_t *)req.payload)[0] = start;
+    ((uint32_t *)req.payload)[1] = size;
+    write_all(fd, &req, sizeof(req.header) + req.header.size);
 
-    // Response
+    Response res;
     read_all(fd, &res, sizeof(res.header));
     read_all(fd, res.payload, res.header.size);
 
-    close(fd);
+    if (res.header.status == SUCCESS) {
+        uint32_t size = ((uint32_t *)res.payload)[0];
+        printf("Deleted %d lines.\n", size);
+    } else {
+        fprintf(stderr, "Failed to delete lines.\n");
+    }
+}
 
-    return 0;
+void client_dump(int fd, uint32_t size)
+{
+    Response res;
+    Request req;
+
+    size_t offset = 0;
+    size = (size == 0) ? 16 : size; // By default read 16 ints
+
+    while (size > 0) {
+        req.header = (RequestHeader) {
+            .type = DUMP,
+            .size = 2 * sizeof(uint32_t),
+        };
+        ((uint32_t *)req.payload)[0] = offset;
+        ((uint32_t *)req.payload)[1] = size;
+        write_all(fd, &req, sizeof(req.header) + req.header.size);
+
+        read_all(fd, &res, sizeof(res.header));
+        read_all(fd, res.payload, res.header.size);
+        size_t n = res.header.size / sizeof(int);
+
+        for (size_t i = 0; i < n; i++) {
+            printf("[0x%.4zx]: %d\n", offset + i, ((int *)res.payload)[i]);
+        }
+
+        offset += n;
+        size -= n;
+
+        if (res.header.status == FAILURE) {
+            fprintf(stderr, "Failed to get memory dump.\n");
+            break;
+        }
+    }
 }

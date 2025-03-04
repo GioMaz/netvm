@@ -12,6 +12,8 @@
 #include "../utils.h"
 #include "../vm.h"
 
+#include "tests.h"
+
 void test_program_factorial()
 {
     const int n = 99999;
@@ -116,6 +118,8 @@ void test_program_fibonacci()
 
 int main()
 {
-    test_program_factorial();
-    test_program_fibonacci();
+    /*test_program_factorial();*/
+    /*test_program_fibonacci();*/
+    test_exec_1();
+    test_exec_2();
 }

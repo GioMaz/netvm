@@ -88,6 +88,7 @@ size_t program_size(Program *program);
 bool program_resize(Program *program, size_t capacity_new);
 bool program_inc_capacity(Program *program);
 bool program_clear(Program *program);
+bool program_clone(Program *dst, Program *src);
 bool program_copy(Program *program, Program *src);
 bool program_merge(Program *program, Instruction *src, size_t size);
 bool program_insert(Program *program, Instruction *src, size_t start, size_t size);

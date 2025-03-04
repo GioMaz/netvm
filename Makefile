@@ -1,35 +1,33 @@
 CC=clang
 CFLAGS=-Wall
 INSTALL_PATH=/usr/bin
-SERVER_NAME=pd-server
+SERVER_NAME=netvm
+CLIENT_NAME=netvm_repl
 TESTS_DIR=tests
 
-.INTERMEDIATE: server.o program.o vm.o el.o client.o repl.o
+.INTERMEDIATE: netvm.o server.o client.o program.o vm.o el.o repl.o utils.o
 
 .PHONY: test
 
-all: server client repl
+all: $(SERVER_NAME) $(CLIENT_NAME)
 
-server: server.o program.o vm.o el.o
-	$(CC) $(CFLAGS) -o server server.o program.o vm.o el.o
+$(SERVER_NAME): netvm.o server.o program.o vm.o el.o utils.o
+	$(CC) $(CFLAGS) -o $(SERVER_NAME) netvm.o server.o program.o vm.o el.o utils.o
 
-client: client.o program.o
-	$(CC) $(CFLAGS) -o client client.o program.o
+$(CLIENT_NAME): repl.o client.o program.o utils.o
+	$(CC) $(CFLAGS) -o $(CLIENT_NAME) repl.o client.o program.o utils.o
 
 test:
 	make -C $(TESTS_DIR) test
 
-repl: repl.o program.o
-	$(CC) $(CFLAGS) -o repl repl.o program.o
-
 clean:
-	rm -f server client repl *.o
+	rm -f $(SERVER_NAME) $(CLIENT_NAME) *.o
 	make -C $(TESTS_DIR) clean
 
-install: server
+install: $(SERVER_NAME)
 	echo Installing executable to ${INSTALL_PATH}
-	mv server ${INSTALL_PATH}/${PD_SERVER}
+	mv $(SERVER_NAME) ${INSTALL_PATH}
 
 uninstall:
 	echo Removing executable from ${INSTALL_PATH}
-	rm ${INSTALL_PATH}/${PD_SERVER}
+	rm ${INSTALL_PATH}/${SERVER_NAME}

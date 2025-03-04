@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 #include "program.h"
 
@@ -49,7 +50,7 @@ bool program_resize(Program *program, size_t capacity_new)
 {
     Instruction *v_new = realloc(program->items, capacity_new * sizeof(Instruction));
     if (v_new == NULL) {
-        printf("Failed to reallocate program vector\n");
+        fprintf(stderr, "Failed to reallocate program vector\n");
         return false;
     }
 
@@ -68,6 +69,20 @@ bool program_inc_capacity(Program *program)
 bool program_clear(Program *program)
 {
     program->size = 0;
+    return true;
+}
+
+bool program_clone(Program *dst, Program *src)
+{
+    size_t bytes = src->size * sizeof(Instruction);
+    bool rv = program_resize(dst, src->size);
+    if (!rv) {
+        return false;
+    }
+    memcpy(dst->items, src->items, bytes);
+    dst->capacity = src->size;
+    dst->size = src->size;
+
     return true;
 }
 

@@ -57,7 +57,12 @@ void loop(Vm *vm)
 
         // Handle result
         if (res != OK) {
-            printf("Error: %s at instruction %d\n", res_names[res], vm->memory[PC]);
+            fprintf(
+                stderr,
+                "Error: %s at instruction %d\n",
+                res_names[res],
+                vm->memory[PC]
+            );
             break;
         }
     }
@@ -81,7 +86,12 @@ bool loopn(Vm *vm)
 
         // Handle result
         if (res != OK) {
-            printf("Error: %s at instruction %d\n", res_names[res], vm->memory[PC]);
+            fprintf(
+                stderr,
+                "Error: %s at instruction %d\n",
+                res_names[res],
+                vm->memory[PC]
+            );
             break;
         }
 
@@ -112,7 +122,12 @@ bool loop_dbg(Vm *vm)
 
     // Handle result
     if (res != OK) {
-        printf("Error: %s at instruction %d\n", res_names[res], vm->memory[PC]);
+        fprintf(
+            stderr,
+            "Error: %s at instruction %d\n",
+            res_names[res],
+            vm->memory[PC]
+        );
     }
 
     // Check if program finished

@@ -62,6 +62,6 @@ ConnState handle_delete(Conn *conn, Request *req, Response *res);
 ConnState handle_dump(Conn *conn, Request *req, Response *res);
 bool handle_response(Conn *conn);
 bool handle_loop(Conn *conn);
-void start_server();
+void start_server(uint16_t port);
 
 #endif

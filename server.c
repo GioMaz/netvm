@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <string.h>
 #include <assert.h>
+#include <unistd.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
@@ -51,11 +52,11 @@ bool handle_request(Conn *conn)
         // Check if the request has finished
         if (bytes == 0) {
             if (conn->rbuf_size > 0) {
-                printf("Unexpected EOF\n");
+                fprintf(stderr, "Unexpected EOF\n");
                 exit(1);
                 return false;
             } else {
-                // printf("EOF\n");
+                printf("EOF\n");
             }
             conn->state = CONN_END;
             break;
@@ -307,7 +308,7 @@ bool handle_loop(Conn *conn)
     return true;
 }
 
-void start_server()
+void start_server(uint16_t port)
 {
     // 1) socket()
     int welcfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -320,7 +321,6 @@ void start_server()
     // 2) bind()
     struct sockaddr_in addr = {0};
     addr.sin_family = AF_INET;
-    uint16_t port = 8080;
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = htonl(0);
     int rv = bind(welcfd, (struct sockaddr *)&addr, sizeof(addr));
@@ -369,7 +369,7 @@ void start_server()
             socklen_t socklen = sizeof(client_addr);
             int connfd = accept(welcfd, (struct sockaddr *)&client_addr, &socklen);
             if (connfd < 0) {
-                printf("Failed to accept new connection\n");
+                fprintf(stderr, "Failed to accept new connection\n");
                 exit(1);
             }
 
@@ -378,9 +378,6 @@ void start_server()
             el_add(&el, connfd);
         }
     }
-}
 
-int main()
-{
-    start_server();
+    close(welcfd);
 }

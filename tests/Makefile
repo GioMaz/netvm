@@ -1,13 +1,14 @@
 CC=clang
 CFLAGS=-Wall
+TESTS_OBJ=test_exec_1.o test_exec_2.o
 
-.INTERMEDIATE: tests.o ../program.o ../vm.o ../el.o
+.INTERMEDIATE: main.o $(TESTS_OBJ) ../server.o ../program.o ../vm.o ../el.o ../utils.o
 
 .PHONY: test
 
-test: tests.o ../program.o ../vm.o ../el.o
-	$(CC) $(CFLAGS) -o tests tests.o ../program.o ../vm.o ../el.o
-	./tests
+test: main.o ../server.o ../client.o ../program.o ../vm.o ../el.o ../utils.o $(TESTS_OBJ)
+	$(CC) $(CFLAGS) -o main main.o ../server.o ../client.o ../program.o ../vm.o ../el.o ../utils.o $(TESTS_OBJ)
+	./main
 
 clean:
-	rm -f tests *.o
+	rm -f main *.o
