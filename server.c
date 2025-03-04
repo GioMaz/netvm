@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <string.h>
 #include <assert.h>
+#include <signal.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -10,6 +11,15 @@
 #include "el.h"
 #include "utils.h"
 #include "server.h"
+
+static int welcfd = -1;
+
+void sigquit_handler(int n)
+{
+    printf("Closing welcome socket...\n");
+    close(welcfd);
+    exit(0);
+}
 
 bool handle_connection(Conn *conn)
 {
@@ -310,8 +320,15 @@ bool handle_loop(Conn *conn)
 
 void start_server(uint16_t port)
 {
+    // 0) sigaction()
+    struct sigaction sa;
+    sa.sa_handler = sigquit_handler;
+    sa.sa_flags = 0;
+    sigemptyset(&sa.sa_mask); // Reset blocked list
+    sigaction(SIGQUIT, &sa, NULL); // Set custom handler
+
     // 1) socket()
-    int welcfd = socket(AF_INET, SOCK_STREAM, 0);
+    welcfd = socket(AF_INET, SOCK_STREAM, 0);
     if (welcfd < 0)
         die("Failed to create welcome socket\n");
 
@@ -324,8 +341,10 @@ void start_server(uint16_t port)
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = htonl(0);
     int rv = bind(welcfd, (struct sockaddr *)&addr, sizeof(addr));
-    if (rv < 0)
+    if (rv < 0) {
+        printf("ERROR STRING: %s\n", strerror(errno));
         die("Failed to bind address to socket\n");
+    }
 
     // 3) listen()
     listen(welcfd, SOMAXCONN);
@@ -378,6 +397,4 @@ void start_server(uint16_t port)
             el_add(&el, connfd);
         }
     }
-
-    close(welcfd);
 }

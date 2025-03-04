@@ -136,7 +136,7 @@ void client_delete(int fd, uint32_t start, uint32_t size)
     }
 }
 
-void client_dump(int fd, uint32_t size)
+void client_dump(int fd, uint32_t *memory, uint32_t size)
 {
     Response res;
     Request req;
