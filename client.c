@@ -107,9 +107,7 @@ void client_exec(int fd)
     read_all(fd, &res, sizeof(res.header));
     read_all(fd, res.payload, res.header.size);
 
-    if (res.header.status == SUCCESS) {
-        printf("Execution started.\n");
-    } else {
+    if (res.header.status == FAILURE) {
         fprintf(stderr, "Failed to execute remote program.\n");
     }
 }
@@ -129,10 +127,7 @@ void client_delete(int fd, uint32_t start, uint32_t size)
     read_all(fd, &res, sizeof(res.header));
     read_all(fd, res.payload, res.header.size);
 
-    if (res.header.status == SUCCESS) {
-        uint32_t size = ((uint32_t *)res.payload)[0];
-        printf("Deleted %d lines.\n", size);
-    } else {
+    if (res.header.status == FAILURE) {
         fprintf(stderr, "Failed to delete lines.\n");
     }
 }

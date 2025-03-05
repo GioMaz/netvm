@@ -11,6 +11,9 @@
 
 void test_exec_1()
 {
+    const int32_t n = 5;
+    int32_t expected = factorial(n);
+
     int pid = fork();
     if (pid) {
         usleep(500);
@@ -26,7 +29,7 @@ void test_exec_1()
         program_init(&program_1);
         program_init(&program_2);
 
-        Instruction i0 = { MOVI,    R1, 5 };
+        Instruction i0 = { MOVI,    R1, n };
         Instruction i1 = { MOV,     R0, R1 };
         Instruction i2 = { SUBI,    R1, R1, 1 };
         Instruction i3 = { BEQI,    6, R1, 1 };
@@ -61,14 +64,27 @@ void test_exec_1()
                 error = "Received arg2 does not match";
         }
 
+        client_exec(fd);
+        int32_t memory;
+        client_dump(fd, &memory, 1);
+
+        if (memory != expected)
+            error = "Expected factorial calculation does not match";
+
+        // Clean
+        close(fd);
         kill(pid, SIGQUIT);
+        program_deinit(&program_1);
+        program_deinit(&program_2);
 
         if (error) {
             printf("%s\n", error);
             assert(false);
         }
+
+        printf("Test completed\n");
     } else {
-        /*freopen("/dev/null", "w", stdout);*/
+        freopen("/dev/null", "w", stdout);
         start_server(PORT);
     }
 }
