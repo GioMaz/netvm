@@ -1,7 +1,7 @@
 # Executables
 netvm
 netvm_repl
-tests
+tests/tests
 
 # Object files
 *.o
