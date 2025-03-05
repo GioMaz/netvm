@@ -7,6 +7,7 @@
 #include "program.h"
 #include "client.h"
 #include "utils.h"
+#include "vm.h"
 
 #define CMD_SIZE 64
 #define FILENAME_SIZE 64
@@ -64,6 +65,17 @@ void repl_get(int fd)
     program_print(&program);
 
     program_deinit(&program);
+}
+
+void repl_dump(int fd, uint32_t size)
+{
+    size = (size == 0) ? 16 : size;
+    int32_t *memory = (int32_t *)malloc(size*sizeof(int32_t));
+    client_dump(fd, memory, size);
+
+    memory_print(memory, (size_t)size);
+
+    free(memory);
 }
 
 void repl_save(int fd, char *filename)
@@ -165,7 +177,7 @@ int main()
         } else if (strcmp(cmd, "dump") == 0) {
             uint32_t size = 0;
             sscanf(buffer, "%*s %d", &size);
-            client_dump(fd, size);
+            repl_dump(fd, size);
         } else if (strcmp(cmd, "save") == 0) {
             char filename[FILENAME_SIZE] = {0};
             sscanf(buffer, "%*s %s", filename);

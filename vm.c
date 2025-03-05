@@ -33,11 +33,15 @@ void vm_setreg(Vm *vm)
 }
 
 // Memory
-void MEMORY_dump(Vm *vm)
+void memory_dump(Vm *vm)
 {
-    int limit = 16;
-    for (int i = 0; i < limit && i < MEMORY_SIZE; i++) {
-        printf("[%i]:\t%i\n", i, vm->memory[i]);
+    memory_print(vm->memory, 16);
+}
+
+void memory_print(int32_t *memory, size_t size)
+{
+    for (size_t i = 0; i < size && i < MEMORY_SIZE; i++) {
+        printf("[0x%.4zx]: %d\n", i, ((int *)memory)[i]);
     }
 }
 
@@ -145,7 +149,7 @@ bool loop_dbg(Vm *vm)
     }
 
     printf("Memory dump:\n");
-    MEMORY_dump(vm);
+    memory_dump(vm);
 
     return true;
 }

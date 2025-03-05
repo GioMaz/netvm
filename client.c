@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "program.h"
 #include "server.h"
@@ -34,7 +35,7 @@ void client_merge_all(int fd, Program *program)
     }
 }
 
-void client_insert(int fd, Program *program, uint64_t start)
+void client_insert(int fd, Program *program, uint32_t start)
 {
     Request req;
     Response res;
@@ -48,8 +49,8 @@ void client_insert(int fd, Program *program, uint64_t start)
         );
         size_t bytes = n * sizeof(Instruction);
 
-        ((uint64_t *)req.payload)[0] = start;
-        ((uint64_t *)req.payload)[1] = n;
+        ((uint64_t *)req.payload)[0] = (uint64_t)start;
+        ((uint64_t *)req.payload)[1] = (uint64_t)n;
         program_split(program, &((Instruction *)req.payload)[1], n);
         req.header = (RequestHeader) {
             .type = INSERT,
@@ -136,13 +137,12 @@ void client_delete(int fd, uint32_t start, uint32_t size)
     }
 }
 
-void client_dump(int fd, uint32_t *memory, uint32_t size)
+void client_dump(int fd, int32_t *memory, uint32_t size)
 {
     Response res;
     Request req;
 
     size_t offset = 0;
-    size = (size == 0) ? 16 : size; // By default read 16 ints
 
     while (size > 0) {
         req.header = (RequestHeader) {
@@ -157,9 +157,7 @@ void client_dump(int fd, uint32_t *memory, uint32_t size)
         read_all(fd, res.payload, res.header.size);
         size_t n = res.header.size / sizeof(int);
 
-        for (size_t i = 0; i < n; i++) {
-            printf("[0x%.4zx]: %d\n", offset + i, ((int *)res.payload)[i]);
-        }
+        memcpy(&memory[offset], &res.payload, res.header.size);
 
         offset += n;
         size -= n;

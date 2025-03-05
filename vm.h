@@ -37,16 +37,17 @@ static const char *res_names[] = {
 
 typedef struct {
     Program *program;
-    int memory[MEMORY_SIZE];
+    int32_t memory[MEMORY_SIZE];
 } Vm;
 
-// Interpreter
+// interpreter
 void vm_init(Vm *vm);
 void vm_deinit(Vm *vm);
 void vm_setreg(Vm *vm);
 
 // Memory
 void memory_dump(Vm *vm);
+void memory_print(int *memory, size_t size);
 
 // Fetch-execute loop
 void loop(Vm *vm);

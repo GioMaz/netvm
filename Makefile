@@ -11,11 +11,11 @@ TESTS_DIR=tests
 
 all: $(SERVER_NAME) $(CLIENT_NAME)
 
-$(SERVER_NAME): netvm.o server.o program.o vm.o el.o utils.o
+$(SERVER_NAME): netvm.o server.o el.o program.o vm.o utils.o
 	$(CC) $(CFLAGS) -o $(SERVER_NAME) netvm.o server.o program.o vm.o el.o utils.o
 
-$(CLIENT_NAME): repl.o client.o program.o utils.o
-	$(CC) $(CFLAGS) -o $(CLIENT_NAME) repl.o client.o program.o utils.o
+$(CLIENT_NAME): repl.o client.o program.o vm.o utils.o
+	$(CC) $(CFLAGS) -o $(CLIENT_NAME) repl.o client.o program.o vm.o utils.o
 
 test:
 	make -C $(TESTS_DIR) test
