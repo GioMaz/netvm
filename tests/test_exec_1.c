@@ -16,7 +16,7 @@ void test_exec_1()
 
     int pid = fork();
     if (pid) {
-        usleep(500);
+        usleep(1000);
         int fd = socket(AF_INET, SOCK_STREAM, 0);
         struct sockaddr_in addr = {0};
         addr.sin_family = AF_INET;
@@ -68,8 +68,9 @@ void test_exec_1()
         int32_t memory;
         client_dump(fd, &memory, 1);
 
-        if (memory != expected)
+        if (memory != expected) {
             error = "Expected factorial calculation does not match";
+        }
 
         // Clean
         close(fd);
@@ -77,12 +78,8 @@ void test_exec_1()
         program_deinit(&program_1);
         program_deinit(&program_2);
 
-        if (error) {
-            printf("%s\n", error);
-            assert(false);
-        }
-
-        printf("Test completed\n");
+        // Check error
+        check_error(error, 1);
     } else {
         freopen("/dev/null", "w", stdout);
         start_server(PORT);

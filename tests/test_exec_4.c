@@ -89,7 +89,7 @@ void test_exec_4()
 {
     int pid = fork();
     if (pid) {
-        usleep(500);
+        usleep(1000);
 
         exec_program_1();
 
@@ -99,12 +99,8 @@ void test_exec_4()
         // Clean
         kill(pid, SIGQUIT);
 
-        if (error) {
-            printf("%s\n", error);
-            assert(false);
-        }
-
-        printf("Test completed\n");
+        // Check error
+        check_error(error, 4);
     } else {
         freopen("/dev/null", "w", stdout);
         start_server(PORT);
