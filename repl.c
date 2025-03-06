@@ -12,7 +12,7 @@
 #define CMD_SIZE 64
 #define FILENAME_SIZE 64
 
-void repl_merge_mode(Program *program)
+static void repl_merge_mode(Program *program)
 {
     while (1) {
         printf("> ");
@@ -29,34 +29,42 @@ void repl_merge_mode(Program *program)
         if (rv) {
             program_add(program, inst);
         } else {
-            fprintf(stderr, "Not a valid instruction.\n");
+            fprintf(stderr, "Not a valid instruction\n");
         }
     }
 }
 
-void repl_merge(int fd)
+static void repl_merge(int fd)
 {
     Program program;
     program_init(&program);
 
     repl_merge_mode(&program);
-    client_merge_all(fd, &program);
+    if (client_merge_all(fd, &program)) {
+        printf("Program merged\n");
+    } else {
+        fprintf(stderr, "Failed to merge program\n");
+    }
 
     program_deinit(&program);
 }
 
-void repl_insert(int fd, uint64_t start)
+static void repl_insert(int fd, uint64_t start)
 {
     Program program;
     program_init(&program);
 
     repl_merge_mode(&program);
-    client_insert(fd, &program, start);
+    if (client_insert(fd, &program, start)) {
+        printf("Program updated\n");
+    } else {
+        fprintf(stderr, "Failed to update program\n");
+    }
 
     program_deinit(&program);
 }
 
-void repl_get(int fd)
+static void repl_get(int fd)
 {
     Program program;
     program_init(&program);
@@ -67,50 +75,66 @@ void repl_get(int fd)
     program_deinit(&program);
 }
 
-void repl_dump(int fd, uint32_t size)
+static void repl_exec(int fd)
+{
+    if (client_exec(fd)) {
+        printf("Execution started\n");
+    } else {
+        fprintf(stderr, "Failed to execute remote program\n");
+    }
+}
+
+static void repl_delete(int fd, uint32_t start, uint32_t size)
+{
+    if (client_delete(fd, start, size)) {
+        printf("Deleted lines %d to %d\n", start, size);
+    } else {
+        fprintf(stderr, "Failed to delete lines\n");
+    }
+}
+
+static void repl_dump(int fd, uint32_t size)
 {
     size = (size == 0) ? 16 : size;
     int32_t *memory = (int32_t *)malloc(size*sizeof(int32_t));
-    client_dump(fd, memory, size);
-
-    memory_print(memory, (size_t)size);
+    if (client_dump(fd, memory, size)) {
+        memory_print(memory, (size_t)size);
+    } else {
+        fprintf(stderr, "Failed to get memory dump\n");
+    }
 
     free(memory);
 }
 
-void repl_save(int fd, char *filename)
+static void repl_save(int fd, char *filename)
 {
     Program program;
     program_init(&program);
     client_get_all(fd, &program);
-    bool rv = program_save(filename, &program);
-    if (!rv) {
-        program_deinit(&program);
-        fprintf(stderr, "Failed to save program to %s.\n", filename);
-        return;
+    if (program_save(filename, &program)) {
+        printf("Saved to %s\n", filename);
+    } else {
+        fprintf(stderr, "Failed to save program to %s\n", filename);
     }
 
     program_deinit(&program);
-    printf("Saved to %s\n", filename);
 }
 
-void repl_load(int fd, char *filename)
+static void repl_load(int fd, char *filename)
 {
     Program program;
     program_init(&program);
-    bool rv = program_load(filename, &program);
-    if (!rv) {
-        program_deinit(&program);
-        fprintf(stderr, "Failed to load program from %s.\n", filename);
-        return;
+    if (program_load(filename, &program)) {
+        printf("Loaded from %s.\n", filename);
+    } else {
+        fprintf(stderr, "Failed to load program from %s\n", filename);
     }
 
     client_merge_all(fd, &program);
     program_deinit(&program);
-    printf("Loaded from %s.\n", filename);
 }
 
-void repl_help()
+static void repl_help()
 {
     const char *help =
         "Commands: \n"
@@ -169,11 +193,11 @@ int main()
         } else if (strcmp(cmd, "get") == 0) {
             repl_get(fd);
         } else if (strcmp(cmd, "exec") == 0) {
-            client_exec(fd);
+            repl_exec(fd);
         } else if (strcmp(cmd, "delete") == 0) {
             uint32_t start = 0, size = 0;
             sscanf(buffer, "%*s %d %d", &start, &size);
-            client_delete(fd, start, size);
+            repl_delete(fd, start, size);
         } else if (strcmp(cmd, "dump") == 0) {
             uint32_t size = 0;
             sscanf(buffer, "%*s %d", &size);

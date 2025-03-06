@@ -20,10 +20,6 @@ static const char *res_names[] = {
 };
 #undef RES_STRING
 
-#define CONTEXT_SIZE 8
-
-#define MEMORY_SIZE 1024
-
 // ABI
 #define R0 0 // vm->memory[R0] tmp0 (return value)
 #define R1 1 // vm->memory[R1] tmp1
@@ -35,10 +31,22 @@ static const char *res_names[] = {
 #define SP 7 // vm->memory[SP] stack pointer
 #define SB 8 // vm->memory[SB] stack base
 
+#define CONTEXT_SIZE 8
+#define MEMORY_SIZE 1024
+#define TIMER_LIMIT 0xffff
+
 typedef struct {
     Program *program;
     int32_t memory[MEMORY_SIZE];
+    uint16_t timer;
 } Vm;
+
+typedef enum {
+    LR_CONTEXT_CHANGED,
+    LR_TIME_EXCEEDED,
+    LR_MALFORMED_INSTRUCTION,
+    LR_SUCCESS,
+} LoopResult;
 
 // interpreter
 void vm_init(Vm *vm);
@@ -50,8 +58,7 @@ void memory_dump(Vm *vm);
 void memory_print(int *memory, size_t size);
 
 // Fetch-execute loop
-void loop(Vm *vm);
-bool loopn(Vm *vm);
+LoopResult loop(Vm *vm);
 bool loop_dbg(Vm *vm);
 Instruction *fetch(Vm *vm);
 InstResult execute(Vm *vm, Instruction *inst);

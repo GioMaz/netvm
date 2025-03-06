@@ -5,7 +5,7 @@
 #include "server.h"
 #include "utils.h"
 
-void client_merge_all(int fd, Program *program)
+bool client_merge_all(int fd, Program *program)
 {
     Request req;
     Response res;
@@ -31,11 +31,15 @@ void client_merge_all(int fd, Program *program)
 
     for (size_t i = 0; i < count; i++) {
         read_all(fd, &res.header, sizeof(res.header));
+        if (res.header.status == FAILURE)
+            return false;
         read_all(fd, res.payload, res.header.size);
     }
+
+    return true;
 }
 
-void client_insert(int fd, Program *program, uint32_t start)
+bool client_insert(int fd, Program *program, uint32_t start)
 {
     Request req;
     Response res;
@@ -64,8 +68,12 @@ void client_insert(int fd, Program *program, uint32_t start)
 
     for (size_t i = 0; i < count; i++) {
         read_all(fd, &res.header, sizeof(res.header));
+        if (res.header.status == FAILURE)
+            return false;
         read_all(fd, res.payload, res.header.size);
     }
+
+    return true;
 }
 
 void client_get_all(int fd, Program *program)
@@ -91,10 +99,10 @@ void client_get_all(int fd, Program *program)
                 res.header.size / sizeof(Instruction));
 
         offset += chunk;
-    } while (res.header.size > 0);
+    } while (res.header.status == SUCCESS);
 }
 
-void client_exec(int fd)
+bool client_exec(int fd)
 {
     Request req;
     req.header = (RequestHeader) {
@@ -105,14 +113,13 @@ void client_exec(int fd)
 
     Response res;
     read_all(fd, &res, sizeof(res.header));
+    if (res.header.status == FAILURE)
+        return false;
     read_all(fd, res.payload, res.header.size);
-
-    if (res.header.status == FAILURE) {
-        fprintf(stderr, "Failed to execute remote program.\n");
-    }
+    return true;
 }
 
-void client_delete(int fd, uint32_t start, uint32_t size)
+bool client_delete(int fd, uint32_t start, uint32_t size)
 {
     Request req;
     req.header = (RequestHeader) {
@@ -125,14 +132,13 @@ void client_delete(int fd, uint32_t start, uint32_t size)
 
     Response res;
     read_all(fd, &res, sizeof(res.header));
+    if (res.header.status == FAILURE)
+        return false;
     read_all(fd, res.payload, res.header.size);
-
-    if (res.header.status == FAILURE) {
-        fprintf(stderr, "Failed to delete lines.\n");
-    }
+    return true;
 }
 
-void client_dump(int fd, int32_t *memory, uint32_t size)
+bool client_dump(int fd, int32_t *memory, uint32_t size)
 {
     Response res;
     Request req;
@@ -149,6 +155,8 @@ void client_dump(int fd, int32_t *memory, uint32_t size)
         write_all(fd, &req, sizeof(req.header) + req.header.size);
 
         read_all(fd, &res, sizeof(res.header));
+        if (res.header.status == FAILURE)
+            return false;
         read_all(fd, res.payload, res.header.size);
         size_t n = res.header.size / sizeof(int);
 
@@ -156,10 +164,7 @@ void client_dump(int fd, int32_t *memory, uint32_t size)
 
         offset += n;
         size -= n;
-
-        if (res.header.status == FAILURE) {
-            fprintf(stderr, "Failed to get memory dump.\n");
-            break;
-        }
     }
+
+    return true;
 }

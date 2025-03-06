@@ -310,12 +310,17 @@ bool handle_response(Conn *conn)
     return true;
 }
 
-bool handle_loop(Conn *conn)
+void handle_loop(Conn *conn)
 {
-    if (loopn(conn->vm)) {
-        conn->state = CONN_REQ;
+    switch (loop(conn->vm)) {
+        case LR_CONTEXT_CHANGED:
+            break;
+        case LR_TIME_EXCEEDED:
+        case LR_MALFORMED_INSTRUCTION:
+        case LR_SUCCESS:
+            conn->state = CONN_REQ;
+            break;
     }
-    return true;
 }
 
 void start_server(uint16_t port)

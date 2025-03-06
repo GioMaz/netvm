@@ -45,39 +45,13 @@ void memory_print(int32_t *memory, size_t size)
     }
 }
 
-// Fetch-execute loop
-void loop(Vm *vm)
-{
-    Instruction *inst;
-    while (vm->memory[PC] < program_size(vm->program)) {
-        // Fetch instruction
-        inst = fetch(vm);
-
-        // Increment program counter
-        vm->memory[PC]++;
-
-        // Execute instruction
-        InstResult res = execute(vm, inst);
-
-        // Handle result
-        if (res != OK) {
-            fprintf(
-                stderr,
-                "Error: %s at instruction %d\n",
-                res_names[res],
-                vm->memory[PC]
-            );
-            break;
-        }
-    }
-}
-
 // Fetch-execute loop nonblocking
-bool loopn(Vm *vm)
+LoopResult loop(Vm *vm)
 {
     Instruction *inst;
     size_t count = 0;
     while (1) {
+        printf("pc: %d, sp: %d\n", vm->memory[PC], vm->memory[SP]);
         // Fetch instruction
         inst = fetch(vm);
 
@@ -96,21 +70,24 @@ bool loopn(Vm *vm)
                 res_names[res],
                 vm->memory[PC]
             );
-            break;
+            return LR_MALFORMED_INSTRUCTION;
         }
 
         // Check if program finished
         if (vm->memory[PC] >= program_size(vm->program)) {
-            return true;
+            return LR_SUCCESS;
+        }
+
+        // Check if timer expired
+        if (vm->timer++ == TIMER_LIMIT) {
+            return LR_TIME_EXCEEDED;
         }
 
         // Check if execution exceeded context size
-        if (count >= CONTEXT_SIZE) {
-            return false;
+        if (count == CONTEXT_SIZE) {
+            return LR_CONTEXT_CHANGED;
         }
     }
-
-    return true;
 }
 
 bool loop_dbg(Vm *vm)
