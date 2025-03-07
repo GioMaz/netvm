@@ -51,7 +51,6 @@ LoopResult loop(Vm *vm)
     Instruction *inst;
     size_t count = 0;
     while (1) {
-        printf("pc: %d, sp: %d\n", vm->memory[PC], vm->memory[SP]);
         // Fetch instruction
         inst = fetch(vm);
 
