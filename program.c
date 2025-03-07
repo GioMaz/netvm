@@ -288,6 +288,10 @@ bool opcode_decode(char *buffer, OpCode *code)
         *code = PUSHI;
     } else if (strcmp(buffer, "pop") == 0) {
         *code = POP;
+    } else if (strcmp(buffer, "sallo") == 0) {
+        *code = SALLO;
+    } else if (strcmp(buffer, "sfree") == 0) {
+        *code = SFREE;
     } else if (strcmp(buffer, "b") == 0) {
         *code = B;
     } else if (strcmp(buffer, "beq") == 0) {

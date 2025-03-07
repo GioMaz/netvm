@@ -2,7 +2,6 @@
 #define VM_H
 
 #include "program.h"
-#include "stddef.h"
 
 typedef enum {
     OK,
@@ -63,8 +62,7 @@ bool loop_dbg(Vm *vm);
 Instruction *fetch(Vm *vm);
 InstResult execute(Vm *vm, Instruction *inst);
 
-// Instruction body
-// Arithmetic
+// Arithmetic instructions
 InstResult add(Vm *vm, int dest, int arg1, int arg2);
 InstResult addi(Vm *vm, int dest, int arg1, int arg2);
 InstResult sub(Vm *vm, int dest, int arg1, int arg2);
@@ -75,12 +73,17 @@ InstResult muli(Vm *vm, int dest, int arg1, int arg2);
 InstResult ddiv(Vm *vm, int dest, int arg1, int arg2);
 InstResult divi(Vm *vm, int dest, int arg1, int arg2);
 
+// Stack manipulation instructions
 InstResult movi(Vm *vm, int dest, int arg1);
 InstResult push(Vm *vm, int dest);
 InstResult pushi(Vm *vm, int dest);
 InstResult pop(Vm *vm, int dest);
+InstResult sallo(Vm *vm, int dest);
+InstResult sfree(Vm *vm, int dest);
+InstResult hallo(Vm *vm, int dest);
+InstResult hfree(Vm *vm, int dest);
 
-// Control
+// Control instruction
 InstResult beq(Vm *vm, int dest, int arg1, int arg2);
 InstResult beqi(Vm *vm, int dest, int arg1, int arg2);
 InstResult bne(Vm *vm, int dest, int arg1, int arg2);

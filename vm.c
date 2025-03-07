@@ -158,6 +158,8 @@ InstResult execute(Vm *vm, Instruction *inst)
     case PUSH:  res = push(vm, dest); break;
     case PUSHI: res = pushi(vm, dest); break;
     case POP:   res = pop(vm, dest); break;
+    case SALLO: res = sallo(vm, dest); break;
+    case SFREE: res = sfree(vm, dest); break;
     case B:     res = beq(vm, dest, 0, 0); break;
     case BEQ:   res = beq(vm, dest, arg1, arg2); break;
     case BEQI:  res = beqi(vm, dest, arg1, arg2); break;
@@ -311,10 +313,29 @@ InstResult pushi(Vm *vm, int dest)
 
 InstResult pop(Vm *vm, int dest)
 {
-    if (CHECK_MEMORY_BOUNDS(dest)
-        && vm->memory[SP] > 0) {
+    if (CHECK_MEMORY_BOUNDS(dest) && vm->memory[SP] > 0) {
         vm->memory[SP]--;
         vm->memory[dest] = vm->memory[vm->memory[SP]];
+        return OK;
+    }
+
+    return MEMORY_OVERFLOW;
+}
+
+InstResult sallo(Vm *vm, int dest)
+{
+    if (CHECK_MEMORY_BOUNDS(vm->memory[SP] + dest)) {
+        vm->memory[SP] += dest;
+        return OK;
+    }
+
+    return MEMORY_OVERFLOW;
+}
+
+InstResult sfree(Vm *vm, int dest)
+{
+    if (CHECK_MEMORY_BOUNDS(vm->memory[SP] - dest)) {
+        vm->memory[SP] -= dest;
         return OK;
     }
 
